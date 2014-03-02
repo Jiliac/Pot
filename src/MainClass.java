@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -6,6 +7,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
+
+import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.transform.*;
 
 public class MainClass {
 	private BufferedImage img;
@@ -116,11 +120,14 @@ public class MainClass {
 	}
 	
 	
-	public void signature(BufferedImage img, ArrayList<ArrayList<Pixel>> CC){
-		Pixel G;
+	public ArrayList<ArrayList<Point>> signature(BufferedImage img, ArrayList<ArrayList<Pixel>> CC){
+		
 		int Sx = 0;
 		int Sy = 0;
+		ArrayList<Point> courbe = new ArrayList<Point>();
+		ArrayList<ArrayList<Point>> COURBE = new ArrayList<ArrayList<Point>>();
 		for (ArrayList<Pixel> cc : CC){
+			
 			for (Pixel pixel: cc){
 				Sx=Sx+pixel.getX();
 				Sy=Sy+pixel.getY();
@@ -128,11 +135,66 @@ public class MainClass {
 			
 			Sx=(int) Sx/ cc.size();
 			Sy=(int) Sy/ cc.size();
-			G = new Pixel( Sx, Sy,img);
-			Point P = new Point();
-			P = null;
+			//Pixel G = new Pixel( Sx, Sy,img);
+			Point P;
 			
+			for (Pixel p: cc){
+				float r= (float) Math.sqrt((p.getX()- Sx)^2 + (p.getY()- Sy)^2);
+				float O= (float) Math.atan((p.getY()-Sy)/(p.getX()-Sx));
+				P=new Point ((int) r,(int) O);
+				courbe.add(P);
+			}
+		}
+		COURBE.add(courbe);
+		return COURBE;
+	}
+	
+	/*public void paint(ArrayList<ArrayList<Point>> COURBE, Graphics g){
+		for (ArrayList<Point> C: COURBE){
+			for (int i=0 ; i< C.size()-1; i++){
+				double x=C.get(i).getX();
+				double xx= C.get(i+1).getX();
+				double y= C.get(i).getY();
+				double yy = C.get(i+1).getY();
+				g.drawLine( x,(int) y,xx,(int) yy);
+				
+			}
 		}
 	}
+	*/
+	
+	public ArrayList<Complex[]> descripteursDeFourier(ArrayList<ArrayList<Point>> COURBE){
+		FastFourierTransformer math = new FastFourierTransformer(DftNormalization.UNITARY);
+		//XYSeries serie = this.audioData.getSeries(0);
+		//XYSeries specSerie = new XYSeries("Spectrum");
+		//double step = (double) sampleRate;
+		//double x=0.;
+		ArrayList<Complex[]> Coef = new ArrayList<Complex[]>();
+		for (ArrayList<Point> courbe:COURBE){
+			double[][] serie = new double[courbe.size()][2];
+			for (int j=0; j<courbe.size(); j++){
+				serie[j][0]= courbe.get(j).getX();
+				serie[j][1]= courbe.get(j).getY();
+			}
+			int k = (int) Math.ceil(Math.log(serie.length)/Math.log(2));
+			
+			double[] data = new double[(int) Math.pow(2, k)];
+			Complex[] cResult = math.transform(data, TransformType.FORWARD);
+			Coef.add(cResult);
+		}
+		return Coef ;
+			
+	}
+/* ********** remarque:
+  il nous faut une image test dont on est sur qu'elle 
+  est un carré ou un cercle ce qui nous donne les coef de fourier des signatures de référence
+  on pourra ainsi comparer les descripteurs obtenus avec ceux de ref
+  
+   il manque une méthode comparaison des descripteurs:
+   planteRepéréeParLeCarré qui prend en entrée les descrip l'image l'arrayList<ArrayList<Pixel>>
+   et qui renvoit une zone au dessus du stikers carré (éventuellement nulle)
+  
+ */
+
 }
 	
